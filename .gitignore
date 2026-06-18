@@ -1,0 +1,8 @@
+# .gitignore
+__pycache__/
+*.pyc
+.DS_Store
+
+# Large ML data blocks & binaries
+dataset/
+models/
