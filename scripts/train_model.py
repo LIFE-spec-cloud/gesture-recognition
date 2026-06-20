@@ -2,10 +2,10 @@ import os
 import numpy as np
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
-from tensorflow.callbacks import ReduceLROnPlateau, EarlyStopping
+from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 
 LANDMARKS_DIR = f"dataset/landmarks"
-MODELS_DIR = "models"
+MODELS_DIR = "models/gesture_classifier"
 GESTURE_LIST = ["Hello", "Yes", "No", "Stop", "Wait", "Come_Here", "Go_Away", "Thank_You", "Help", "Clap"]
 SAMPLES_PER_GESTURES = 200
 
@@ -60,3 +60,53 @@ for seq, label in zip(X_train, y_train):
         
 X_train = np.array(X_train_expanded, dtype = np.float32)
 y_train = np.array(y_train_expanded, dtype = np.int64)
+
+model = keras.Sequential([
+    keras.Input(shape=(30, 126)),
+    
+    keras.layers.Conv1D(128, kernel_size=3, padding="same", activation="relu"),
+    keras.layers.BatchNormalization(),
+    keras.layers.Dropout(0.2),
+    
+    keras.layers.Conv1D(128, kernel_size=5, padding="same", activation="relu"),
+    keras.layers.BatchNormalization(),
+    keras.layers.MaxPooling1D(pool_size=2),
+    keras.layers.Dropout(0.3),
+    
+    keras.layers.Conv1D(256, kernel_size=5, padding="same", activation="relu"),
+    keras.layers.BatchNormalization(),
+    keras.layers.MaxPooling1D(pool_size=2),
+    keras.layers.Dropout(0.3),
+    
+    keras.layers.GlobalAveragePooling1D(),
+    
+    keras.layers.Dense(256, activation="relu", kernel_regularizer=keras.regularizers.l2(0.001)),
+    keras.layers.Dropout(0.4),
+    keras.layers.Dense(len(GESTURE_LIST), activation="softmax")
+])
+
+model.compile(
+    optimizer = keras.optimizers.ADAM(learning_rate = 0.001),
+    loss = 'sparse_categorical_entropy',
+    metrics = ['accuracy']
+)
+
+early_stop = EarlyStopping(monitor='val_loss', patience=12, restore_best_weights=True)
+reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, verbose = 1, patience = 2, min_lr=0.00001)
+EPOCHS = 70
+BATCH_SIZE = 32
+
+history = model.fit(
+    X_train, y_train,
+    validation_split = 0.10,
+    epochs = EPOCHS,
+    batch_size = BATCH_SIZE,
+    callbacks = [early_stop, reduce_lr]
+)
+
+test_loss, test_acc = model.evaluate(X_test, y_test, verbose=1)
+print(f"\n ACCURACY: {test_acc*100:.2f}%")
+
+os.makedirs(MODELS_DIR, exist_ok=True)
+model.save(os.path.join(MODELS_DIR, 'action_model.h5'))
+np.save(os.path.join(MODELS_DIR, 'labels.npy'), np.array(GESTURE_LIST))
