@@ -7,7 +7,7 @@ from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 LANDMARKS_DIR = f"dataset/landmarks"
 MODELS_DIR = "models/gesture_classifier"
 GESTURE_LIST = ["Hello", "Yes", "No", "Stop", "Wait", "Come_Here", "Go_Away", "Thank_You", "Help", "Clap"]
-SAMPLES_PER_GESTURES = 200
+SAMPLES_PER_GESTURES = 50
 
 def augment_sequence(sequence, noise_level=0.005, scale_range=(0.95, 1.05), shift_range=(-0.02, 0.02)):
     augmented = sequence.copy()
@@ -22,7 +22,7 @@ def augment_sequence(sequence, noise_level=0.005, scale_range=(0.95, 1.05), shif
     reshaped[:, :, 0] += X_shift
     reshaped[:, :, 1] += y_shift
     
-    noise = np.random.normal(0, noise, reshaped.shape)
+    noise = np.random.normal(0, noise_level, reshaped.shape)
     reshaped += noise
     
     return reshaped.reshape(30, 126)
