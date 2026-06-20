@@ -6,7 +6,7 @@ from utils.mediapipe_loader import create_live_landmarker, frame_to_mp_image
 from utils.landmarks_util import process_two_hands
 
 GESTURE_LIST = ["Hello", "Yes", "No", "Stop", "Wait", "Come_Here", "Go_Away", "Thank_You", "Help", "Clap"]
-SAMPLES_PER_GESTURE = 2
+SAMPLES_PER_GESTURE = 50
 
 cap = cv2.VideoCapture(0)
 landmarker = create_live_landmarker(num_hands=2)
