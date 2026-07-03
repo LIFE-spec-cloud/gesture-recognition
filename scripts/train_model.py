@@ -60,6 +60,10 @@ for seq, label in zip(X_train, y_train):
         
 X_train = np.array(X_train_expanded, dtype = np.float32)
 y_train = np.array(y_train_expanded, dtype = np.int64)
+indices = np.arange(X_train.shape[0]) 
+np.random.shuffle(indices) 
+X_train = X_train[indices] 
+y_train = y_train[indices]
 
 model = keras.Sequential([
     keras.Input(shape=(30, 126)),
