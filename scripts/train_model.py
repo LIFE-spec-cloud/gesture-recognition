@@ -12,7 +12,7 @@ SAMPLES_PER_GESTURES = 50
 def augment_sequence(sequence, noise_level=0.005, scale_range=(0.95, 1.05), shift_range=(-0.02, 0.02)):
     augmented = sequence.copy()
     
-    scale_factor = np.random.uniform(scale_range[0]. scale_range[1])
+    scale_factor = np.random.uniform(scale_range[0], scale_range[1])
     augmented = augmented * scale_factor
     
     reshaped = augmented.reshape(30, 42, 3)
