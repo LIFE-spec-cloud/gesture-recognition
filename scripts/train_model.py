@@ -54,7 +54,7 @@ for seq, label in zip(X_train, y_train):
     y_train_expanded.append(label)
     
     for i in range(mutation_needed - 1):
-        mutated_seq = augment_sequence(X_train)
+        mutated_seq = augment_sequence(seq)
         X_train_expanded.append(mutated_seq)
         y_train_expanded.append(label)
         
