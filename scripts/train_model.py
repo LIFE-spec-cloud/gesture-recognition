@@ -90,8 +90,8 @@ model = keras.Sequential([
 ])
 
 model.compile(
-    optimizer = keras.optimizers.ADAM(learning_rate = 0.001),
-    loss = 'sparse_categorical_entropy',
+    optimizer = keras.optimizers.Adam(learning_rate = 0.001),
+    loss = keras.losses.SparseCategoricalCrossentropy(),
     metrics = ['accuracy']
 )
 
