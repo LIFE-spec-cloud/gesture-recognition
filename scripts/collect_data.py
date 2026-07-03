@@ -13,6 +13,8 @@ landmarker = create_live_landmarker(num_hands=2)
 
 print("------DATA COLLECTION STARTING---------")
 
+cv2.namedWindow("Data Collector")
+
 for gesture in GESTURE_LIST:
     SAVE_DIR = f"dataset/landmarks/{gesture}"
     os.makedirs(SAVE_DIR, exist_ok=True)
@@ -21,16 +23,13 @@ for gesture in GESTURE_LIST:
     sequence = []
     
     print(f"-------PREPARE TO RECORD {gesture} --------")  
-    start_time = time.time()
     countdown_seconds = 5
     current_countdown = countdown_seconds
     last_tick = time.time()
 
     while True:
         ret, frame = cap.read()
-        if not ret:
-            continue  
-            
+        if not ret: continue  
         frame = cv2.flip(frame, 1)
         
         cv2.putText(frame, f"GET READY FOR: {gesture}", (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
@@ -61,8 +60,15 @@ for gesture in GESTURE_LIST:
         feat = process_two_hands(result.hand_landmarks)
         sequence.append(feat)
         
-        if(len(sequence) > 30):
+        if len(sequence) > 30:
             sequence.pop(0)
+
+        if result.hand_landmarks:
+            for hand_landmarks_list in result.hand_landmarks:
+                for lm in hand_landmarks_list:
+                    h, w, _ = frame.shape
+                    cx, cy = int(lm.x * w), int(lm.y * h)
+                    cv2.circle(frame, (cx, cy), 4, (255, 255, 0), -1)
             
         cv2.putText(frame, f"CURRENT GESTURE: {gesture}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
         cv2.putText(frame, f"Progress: {saved_count}/{SAMPLES_PER_GESTURE} samples", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
@@ -70,53 +76,56 @@ for gesture in GESTURE_LIST:
         cv2.putText(frame, "Hold gesture & press 'r' to save", (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 1)
         
         cv2.imshow("Data Collector", frame)
-        
         key = cv2.waitKey(1) & 0xFF
+                
         if key == ord('r') and len(sequence) == 30:
-            np.save(os.path.join(SAVE_DIR, f"sample_{saved_count}.npy"), np.array(sequence))
-            saved_count += 1
-            sequence = []
-            while True:
-                ret, pause_frame = cap.read()
-                if not ret: 
-                    break
-                pause_frame = cv2.flip(pause_frame, 1)
-                
-                cv2.rectangle(pause_frame, (10, 20), (620, 150), (0, 0, 0), -1)
-                
-                cv2.putText(pause_frame, " SAMPLE SAVED!", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 3)
-                cv2.putText(pause_frame, "PAUSED: Press 'r' to start next sample...", (30, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
-                
-                cv2.imshow("Data Collector", pause_frame)
-                
-                pause_key = cv2.waitKey(1) & 0xFF
-                
-                if pause_key == ord('r'): 
-                    if saved_count == SAMPLES_PER_GESTURE:
-                        break
-                    pause_duration = 5
-                    pause_start = time.time()
-                    
-                    while True:
-                        elapsed = time.time() - pause_start
-                        countdown_remaining = int(pause_duration - elapsed)
-                        
-                        if countdown_remaining <= 0:
-                            break
-                            
-                        ret, pause_frame = cap.read()
-                        if not ret: 
-                            break
-                        pause_frame = cv2.flip(pause_frame, 1)
-                    
-                        cv2.rectangle(pause_frame, (10, 20), (620, 160), (0, 0, 0), -1)
-                        cv2.putText(pause_frame, "GET READY FOR NEXT SAMPLE", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 3)
-                        cv2.putText(pause_frame, f"Recording starts in: {countdown_remaining}", (30, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
-                        
-                        cv2.imshow("Data Collector", pause_frame)
-                        cv2.waitKey(1)
-                    break
+            is_valid_sample = all(np.any(frame_data != 0) for frame_data in sequence)
             
+            if is_valid_sample:
+                np.save(os.path.join(SAVE_DIR, f"sample_{saved_count}.npy"), np.array(sequence))
+                print(f"Saved sample_{saved_count}.npy")
+                saved_count += 1
+                sequence = []
+                
+                if saved_count == SAMPLES_PER_GESTURE:
+                    break
+                
+                while True:
+                    ret, pause_frame = cap.read()
+                    if not ret: break
+                    pause_frame = cv2.flip(pause_frame, 1)
+                    
+                    cv2.rectangle(pause_frame, (10, 20), (620, 150), (0, 0, 0), -1)
+                    cv2.putText(pause_frame, " SAMPLE SAVED!", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 3)
+                    cv2.putText(pause_frame, "PAUSED: Press 'r' to start next sample", (30, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+                    cv2.imshow("Data Collector", pause_frame)
+                    
+                    pause_key = cv2.waitKey(1) & 0xFF
+                    if pause_key == ord('r'):
+                        break  
+                        
+                pause_duration = 3
+                pause_start = time.time()
+                while True:
+                    elapsed = time.time() - pause_start
+                    countdown_remaining = int(pause_duration - elapsed)
+                    if countdown_remaining <= 0: 
+                        break 
+                        
+                    ret, pause_frame = cap.read()
+                    if not ret: break
+                    pause_frame = cv2.flip(pause_frame, 1)
+                
+                    cv2.rectangle(pause_frame, (10, 20), (620, 160), (0, 0, 0), -1)
+                    cv2.putText(pause_frame, "GET READY FOR NEXT SAMPLE", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 3)
+                    cv2.putText(pause_frame, f"Recording starts in: {countdown_remaining}", (30, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+                    cv2.imshow("Data Collector", pause_frame)
+                    cv2.waitKey(1)
+                    
+            else:
+                print(f"REJECTED: MediaPipe lost tracking mid-sequence. Redoing sample {saved_count}")
+                sequence = []
+                
         elif key == ord('q'):
             print("------- COLLECTION BROKEN MANUALLY -------") 
             cap.release()
@@ -128,4 +137,3 @@ cap.release()
 cv2.destroyAllWindows()
 landmarker.close()
 print("-------- DATA COLLECTION COMPLETE -----------")
-        
