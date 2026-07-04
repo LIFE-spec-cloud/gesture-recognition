@@ -24,7 +24,7 @@ def normalize_frame(raw_frame):
     ref_dist = np.linalg.norm(ref_vec)
     
     if ref_dist > 1e-5:
-        ref_vec = ref_vec / ref_dist
+        landmarks /= ref_dist
         
     return landmarks.reshape(-1)
 
